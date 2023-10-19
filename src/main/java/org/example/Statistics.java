@@ -1,4 +1,4 @@
 package org.example;
 
-public record Statistics(int maxRequestsPerSecond, int averageRequestsPerSecond) {
+public record Statistics(int maxRequestsPerSecond, float averageRequestsPerSecond) {
 }

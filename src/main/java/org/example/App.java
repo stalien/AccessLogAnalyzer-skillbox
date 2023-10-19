@@ -2,15 +2,14 @@ package org.example;
 
 import com.google.gson.Gson;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,34 +17,53 @@ public class App
 {
 
     private static final String path = "/Users/stalien/Desktop/access.log";
+    private static final String outputPath = "/Users/stalien/Desktop/result.json";
     private static DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z").withLocale(Locale.ENGLISH);
     private static String dateTimeRegex = ".+\\[([^;\\]]+)\\].+";
 
     public static void main( String[] args ) throws IOException {
 
-//        String dateTime = "15/Aug/2023:06:25:15 +0300";
-//        System.out.println(getTimestamp(dateTime));
+        long minTime = Long.MAX_VALUE;
+        long maxTime = Long.MIN_VALUE;
+        int requestsCount = 0;
 
         List<String> lines = Files.readAllLines(Paths.get(path));
-
-//        System.out.println(lines.get(0));
-
         Pattern dateTimePattern = Pattern.compile(dateTimeRegex);
+
+        HashMap<Long, Integer> countPerSecond = new HashMap<>();
 
         for (String line : lines) {
             Matcher matcher = dateTimePattern.matcher(line);
             if (!matcher.find()) {
                 continue;
             }
+            requestsCount++;
+
             String dateTime = matcher.group(1);
-            System.out.println(dateTime);
+            long time = getTimestamp(dateTime);
+
+            countPerSecond.put(time, countPerSecond.getOrDefault(time, 0) + 1);
+
+            minTime = Math.min(minTime, time);
+            maxTime = Math.max(maxTime, time);
         }
-//        Statistics statistics = new Statistics(40, 12);
-//        Gson gson = new Gson();
-//        String json = gson.toJson(statistics);
-//
-//        System.out.println(json);
+
+        int maxRequestsPerSecond = Collections.max(countPerSecond.values());
+
+        float averageRequestsPerSecond = requestsCount / (float)(maxTime - minTime);
+
+        Statistics statistics = new Statistics(maxRequestsPerSecond, averageRequestsPerSecond);
+        Gson gson = new Gson();
+        String json = gson.toJson(statistics);
+
+        System.out.println(json);
+
+        FileWriter writer = new FileWriter(outputPath);
+        writer.write(json);
+        writer.flush();
+        writer.close();
+        
     }
 
     public static long getTimestamp(String dateTime) {
